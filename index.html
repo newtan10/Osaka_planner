@@ -280,6 +280,27 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="bg-white p-5 rounded-3xl shadow-soft border border-slate-100 mb-8">
+                    <div class="flex items-center mb-3">
+                        <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center mr-3">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                        </div>
+                        <h3 class="font-bold text-slate-800">行程分享與備份</h3>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-4 leading-relaxed">
+                        目前資料僅存在此手機。若要分享給家人，請先「匯出檔案」，傳給家人後，請他們「匯入檔案」即可同步。
+                    </p>
+                    <div class="flex gap-3">
+                        <button @click="exportData" class="flex-1 bg-ice-500 text-white py-3 rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-ice-600">
+                            <i class="fa-solid fa-file-export"></i> 匯出檔案
+                        </button>
+                        <label class="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer hover:bg-slate-200">
+                            <i class="fa-solid fa-file-import"></i> 匯入檔案
+                            <input type="file" @change="importData" class="hidden" accept=".json">
+                        </label>
+                    </div>
+                </div>
             </div>
 
             <div v-if="currentTab === 'shopping'" class="h-full overflow-y-auto p-4 pb-24 animate-fade-in bg-slate-50">
@@ -805,13 +826,64 @@
                     }
                 };
 
+                // --- 資料匯出與匯入 ---
+                const exportData = () => {
+                    const data = {
+                        itinerary: itineraryData,
+                        shopping: shoppingList,
+                        expenses: expenses
+                    };
+                    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `大阪行程備份_${new Date().toISOString().slice(0,10)}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                };
+
+                const importData = (event) => {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const parsed = JSON.parse(e.target.result);
+                            if (confirm('匯入將會覆蓋目前手機上的所有資料，確定嗎？')) {
+                                // 覆蓋行程
+                                if (parsed.itinerary) {
+                                    for (const key in itineraryData) delete itineraryData[key];
+                                    Object.assign(itineraryData, parsed.itinerary);
+                                }
+                                // 覆蓋購物清單
+                                if (parsed.shopping) {
+                                    shoppingList.splice(0, shoppingList.length, ...parsed.shopping);
+                                }
+                                // 覆蓋花費
+                                if (parsed.expenses) {
+                                    expenses.splice(0, expenses.length, ...parsed.expenses);
+                                }
+                                alert('匯入成功！資料已同步。');
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            alert('檔案格式錯誤，無法匯入。');
+                        }
+                    };
+                    reader.readAsText(file);
+                    event.target.value = '';
+                };
+
                 return { 
                     currentTab, dates, selectedDate, formatDate, itineraryData, currentItinerary, 
                     shoppingList, expenses, expensesStats, dbsStats,
                     calcJpy, exchangeRate, weatherInfo, getCategoryIcon, getTransportIcon, openMap, 
                     showModal, isEditing, form, openAddModal, editItem, saveItem, deleteItem, closeModal, dragStart, drop, 
                     showShopModal, shopForm, openShopModal, handleImageUpload, saveShopItem, removeShoppingItem, 
-                    showExpenseModal, expenseForm, openExpenseModal, saveExpense, deleteExpense 
+                    showExpenseModal, expenseForm, openExpenseModal, saveExpense, deleteExpense,
+                    exportData, importData // <--- 新增匯出入功能
                 };
             }
         }).mount('#app');
