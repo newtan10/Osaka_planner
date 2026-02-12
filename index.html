@@ -50,8 +50,9 @@
         <div class="flex-1 mt-8 bg-slate-50 z-10 relative overflow-hidden flex flex-col">
             
             <div v-if="currentTab === 'itinerary'" class="h-full flex flex-col animate-fade-in relative">
-                <div class="bg-slate-50 pt-4 pb-2 z-20">
-                    <div class="flex overflow-x-auto hide-scrollbar px-4 space-x-3 pb-2 items-end">
+                <div class="bg-slate-50 z-20">
+                    <div class="flex overflow-x-auto hide-scrollbar px-4 space-x-3 py-3 items-end">
+                        
                         <button @click="addPrevDate" class="flex flex-col items-center justify-center min-w-[60px] h-[70px] rounded-2xl border-2 border-dashed border-ice-300 text-ice-400 hover:bg-ice-50 hover:border-ice-400 transition-all flex-shrink-0 active:scale-95">
                             <i class="fa-solid fa-angle-left text-lg mb-1"></i>
                             <span class="text-[10px] font-bold">前一天</span>
@@ -63,8 +64,8 @@
                             
                             <button v-if="selectedDate === date.full && dates.length > 1" 
                                     @click.stop="deleteDate(date.full)"
-                                    class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-600 hover:scale-110 transition-all z-20">
-                                <i class="fa-solid fa-xmark text-[10px]"></i>
+                                    class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-600 hover:scale-110 transition-all z-20">
+                                <i class="fa-solid fa-xmark text-xs"></i>
                             </button>
 
                             <span class="text-xs font-medium">{{ date.day }}</span>
@@ -79,18 +80,23 @@
                 </div>
 
                 <div class="flex-1 overflow-y-auto px-4 pb-24 space-y-6 pt-2">
-                    <div class="bg-gradient-to-br from-ice-50 to-white border border-ice-100 rounded-3xl p-5 shadow-soft flex items-center justify-between relative overflow-hidden">
-                        <div class="absolute -right-4 -top-4 text-ice-100 opacity-50 text-9xl rotate-12 pointer-events-none"><i :class="weatherInfo.icon"></i></div>
-                        <div class="z-10">
-                            <div class="flex items-start">
-                                <i :class="weatherInfo.icon" class="text-4xl text-ice-500 mr-3 mt-1"></i>
-                                <div>
-                                    <h2 class="text-4xl font-bold text-slate-800">{{ weatherInfo.temp }}<span class="text-lg text-slate-400 font-normal">°C</span></h2>
-                                    <p class="text-xs text-slate-500 font-medium mt-1">體感 {{ weatherInfo.feel }}°C · 大阪</p>
-                                </div>
+                    <div class="bg-gradient-to-r from-ice-50 to-white border border-ice-100 rounded-2xl px-4 py-3 shadow-sm flex items-center justify-between relative overflow-hidden shrink-0">
+                        <div class="absolute -right-1 -top-4 text-ice-50 opacity-60 text-6xl rotate-12 pointer-events-none">
+                            <i :class="weatherInfo.icon"></i>
+                        </div>
+                        
+                        <div class="z-10 flex items-center gap-3">
+                            <i :class="weatherInfo.icon" class="text-2xl text-ice-500"></i>
+                            <div class="flex items-baseline gap-2">
+                                <h2 class="text-2xl font-black text-slate-800">{{ weatherInfo.temp }}°</h2>
+                                <p class="text-[10px] text-slate-400 font-bold">體感 {{ weatherInfo.feel }}°</p>
                             </div>
                         </div>
-                        <div class="z-10 text-right"><span class="bg-ice-100 text-ice-600 text-[10px] font-bold px-2 py-1 rounded-full">TODAY</span><div class="text-xs text-slate-400 mt-2">適合步行</div></div>
+
+                        <div class="z-10 flex flex-col items-end">
+                            <span class="bg-ice-100 text-ice-600 text-[9px] font-bold px-2 py-0.5 rounded-full mb-0.5">TODAY</span>
+                            <span class="text-[10px] text-slate-400">大阪</span>
+                        </div>
                     </div>
 
                     <div class="relative pl-2">
