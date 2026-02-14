@@ -36,7 +36,8 @@ createApp({
 
         const getExchangeRate = async () => {
             try {
-                const response = await fetch('[https://api.exchangerate-api.com/v4/latest/JPY](https://api.exchangerate-api.com/v4/latest/JPY)');
+                const response = await fetch('https://api.exchangerate-api.com/v4/latest/JPY');
+                
                 const data = await response.json();
                 if (data?.rates?.TWD) exchangeRate.value = data.rates.TWD;
             } catch (error) { console.error("匯率失敗", error); }
@@ -252,12 +253,26 @@ createApp({
         // CRUD Functions
         const openAddModal = () => { isEditing.value = false; Object.assign(form, { id: Date.now(), name: '', time: '', category: '景點', note: '', transportMode: 'walk' }); showModal.value = true; };
         const editItem = (item) => { isEditing.value = true; Object.assign(form, item); showModal.value = true; };
+
         const saveItem = () => { 
             if (!itineraryData[selectedDate.value]) itineraryData[selectedDate.value] = [];
-            if (isEditing.value) { const idx = itineraryData[selectedDate.value].findIndex(i => i.id === form.id); if (idx !== -1) itineraryData[selectedDate.value][idx] = { ...form }; } 
-            else itineraryData[selectedDate.value].push({ ...form }); 
+            
+            const list = itineraryData[selectedDate.value];
+
+            if (isEditing.value) { 
+                const idx = list.findIndex(i => i.id === form.id); 
+                if (idx !== -1) list[idx] = { ...form }; 
+            } else { 
+                list.push({ ...form }); 
+            } 
+
+            list.sort((a, b) => {
+                return a.time.localeCompare(b.time);
+            });
+
             showModal.value = false; 
         };
+
         const deleteItem = () => { if(confirm('刪除？')) { const idx = itineraryData[selectedDate.value].findIndex(i => i.id === form.id); if (idx !== -1) itineraryData[selectedDate.value].splice(idx, 1); showModal.value = false; } };
         const closeModal = () => showModal.value = false;
         let dragStartIndex = null;
