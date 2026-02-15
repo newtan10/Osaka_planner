@@ -5,7 +5,7 @@ createApp({
         const currentTab = ref('itinerary');
         const selectedDate = ref('2026-02-20');
         const calcJpy = ref(null);
-        const exchangeRate = ref(0.215); 
+        const exchangeRate = ref(0.206); 
 
         // --- Data storage Key ---
         const STORAGE_KEYS = {
@@ -37,13 +37,11 @@ createApp({
         const getExchangeRate = async () => {
             try {
                 const response = await fetch('https://api.exchangerate-api.com/v4/latest/JPY');
-                
                 const data = await response.json();
                 if (data?.rates?.TWD) exchangeRate.value = data.rates.TWD;
             } catch (error) { console.error("匯率失敗", error); }
         };
 
-        // Use reactive to define dates for adding and deleting.
         const dates = reactive([
             { full: '2026-02-20', day: '週五', date: '20' },
             { full: '2026-02-21', day: '週六', date: '21' },
@@ -72,10 +70,8 @@ createApp({
             const newDate = getFormattedDate(nextDate);
             dates.push(newDate);
 
-            // Initialize the run array for this date
             if (!itineraryData[newDate.full]) itineraryData[newDate.full] = [];
             
-            // Automatically switch to the new date and scroll
             selectedDate.value = newDate.full;
             setTimeout(() => {
                 const container = document.querySelector('.overflow-x-auto');
@@ -90,12 +86,10 @@ createApp({
             prevDate.setDate(prevDate.getDate() - 1);
 
             const newDate = getFormattedDate(prevDate);
-            dates.unshift(newDate);
+            dates.unshift(newDate); 
 
-            // Initialize the run array for this date
             if (!itineraryData[newDate.full]) itineraryData[newDate.full] = [];
             
-            // Automatically switch to the new date and scroll
             selectedDate.value = newDate.full;
             setTimeout(() => {
                 const container = document.querySelector('.overflow-x-auto');
@@ -103,7 +97,23 @@ createApp({
             }, 100);
         };
 
-        // --- Default data ---
+        const deleteDate = (targetFull) => {
+            if (dates.length <= 1) {
+                alert("至少需要保留一天行程！");
+                return;
+            }
+            if (!confirm(`確定要刪除 ${targetFull} 及其所有行程嗎？`)) return;
+
+            const idx = dates.findIndex(d => d.full === targetFull);
+            if (idx === -1) return;
+
+            dates.splice(idx, 1);
+            delete itineraryData[targetFull];
+
+            const newIdx = Math.min(idx, dates.length - 1);
+            selectedDate.value = dates[newIdx].full;
+        };
+
         const defaultItinerary = {
             '2026-02-20': [
                 { 
@@ -188,8 +198,10 @@ createApp({
         onMounted(() => { loadSavedData(); getWeather(); getExchangeRate(); });
 
         const showModal = ref(false), isEditing = ref(false), form = reactive({ id: null, name: '', time: '', category: '景點', note: '', transportMode: 'walk' });
-        const showShopModal = ref(false), shopForm = reactive({ name: '', image: null });
         
+        const showShopModal = ref(false);
+        const shopForm = reactive({ index: -1, name: '', image: null }); 
+
         const showExpenseModal = ref(false);
         const expenseForm = reactive({ id: null, date: '2026-02-20', name: '', amount: '', category: '飲食', payment: '現金', currency: 'JPY' });
 
@@ -201,7 +213,6 @@ createApp({
 
         const currentItinerary = computed(() => itineraryData[selectedDate.value] || []);
         
-        // Expense & Rewards Logic
         const expensesStats = computed(() => {
             let totalJPY = 0;
             let totalTWD = 0;
@@ -237,8 +248,8 @@ createApp({
             return { spent: spentTWD, reward: totalReward, percent: percent };
         });
 
-        // Helpers
         const formatDate = (d) => d; 
+        
         const getCategoryIcon = (c) => {
             const map = { '景點': 'fa-camera', '住宿': 'fa-bed', '美食': 'fa-utensils', '購物': 'fa-bag-shopping', '交通': 'fa-train', '其他': 'fa-star', '航班': 'fa-plane' };
             return `fa-solid ${map[c] || 'fa-circle'}`;
@@ -250,13 +261,11 @@ createApp({
         
         const openMap = (k) => k && window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(k)}`, '_blank');
         
-        // CRUD Functions
         const openAddModal = () => { isEditing.value = false; Object.assign(form, { id: Date.now(), name: '', time: '', category: '景點', note: '', transportMode: 'walk' }); showModal.value = true; };
         const editItem = (item) => { isEditing.value = true; Object.assign(form, item); showModal.value = true; };
-
+        
         const saveItem = () => { 
             if (!itineraryData[selectedDate.value]) itineraryData[selectedDate.value] = [];
-            
             const list = itineraryData[selectedDate.value];
 
             if (isEditing.value) { 
@@ -266,9 +275,7 @@ createApp({
                 list.push({ ...form }); 
             } 
 
-            list.sort((a, b) => {
-                return a.time.localeCompare(b.time);
-            });
+            list.sort((a, b) => a.time.localeCompare(b.time));
 
             showModal.value = false; 
         };
@@ -279,7 +286,31 @@ createApp({
         const dragStart = (i) => dragStartIndex = i;
         const drop = (i) => { const list = itineraryData[selectedDate.value]; const item = list.splice(dragStartIndex, 1)[0]; list.splice(i, 0, item); dragStartIndex = null; };
 
-        const openShopModal = () => { shopForm.name = ''; shopForm.image = null; showShopModal.value = true; };
+        const openShopModal = (item = null, idx = -1) => { 
+            shopForm.index = idx; 
+            if (item) {
+                shopForm.name = item.name;
+                shopForm.image = item.image;
+            } else {
+                shopForm.name = '';
+                shopForm.image = null;
+            }
+            showShopModal.value = true; 
+        };
+
+        const saveShopItem = () => { 
+            if(shopForm.name) { 
+                if (shopForm.index > -1) {
+                    shoppingList[shopForm.index] = { name: shopForm.name, image: shopForm.image };
+                } else {
+                    shoppingList.push({ name: shopForm.name, image: shopForm.image }); 
+                }
+                showShopModal.value = false; 
+            } 
+        };
+
+        const removeShoppingItem = (i) => { if(confirm('刪除？')) shoppingList.splice(i, 1); };
+
         const compressImage = (file, maxWidth = 400, quality = 0.7) => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -308,8 +339,6 @@ createApp({
                 catch (error) { console.error("Img error"); }
             }
         };
-        const saveShopItem = () => { if(shopForm.name) { shoppingList.push({ ...shopForm }); showShopModal.value = false; } };
-        const removeShoppingItem = (i) => { if(confirm('刪除？')) shoppingList.splice(i, 1); };
 
         const openExpenseModal = (item = null) => { 
             if (item) Object.assign(expenseForm, item);
@@ -363,29 +392,6 @@ createApp({
             };
             reader.readAsText(file);
             event.target.value = '';
-        };
-
-        const deleteDate = (targetFull) => {
-            if (dates.length <= 1) {
-                alert("至少需要保留一天行程！");
-                return;
-            }
-
-            if (!confirm(`確定要刪除 ${targetFull} 及其所有行程嗎？`)) return;
-
-            const idx = dates.findIndex(d => d.full === targetFull);
-            if (idx === -1) return;
-
-            dates.splice(idx, 1);
-
-            // 3. (Choosen) Delete the travel data for this date to avoid accumulating junk data.
-            // Note: If you do not delete itineraryData[targetFull], the trip will still be there when you add the same date back next time
-            delete itineraryData[targetFull];
-
-            // 4. Automatically select the nearest date
-            // If the last day is deleted, select the new last day; otherwise, select the next day that appears in the original position.
-            const newIdx = Math.min(idx, dates.length - 1);
-            selectedDate.value = dates[newIdx].full;
         };
 
         return { 
